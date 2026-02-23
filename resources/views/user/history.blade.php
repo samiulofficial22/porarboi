@@ -17,11 +17,11 @@
                     <table class="table table-hover align-middle mb-0">
                         <thead class="bg-light">
                             <tr>
-                                <th class="ps-4 border-0">Date</th>
-                                <th class="border-0">Book</th>
-                                <th class="border-0">Transaction ID</th>
-                                <th class="border-0">Amount</th>
-                                <th class="border-0">Status</th>
+                                <th class="ps-4 border-0">Order Info</th>
+                                <th class="border-0">Book & Format</th>
+                                <th class="border-0">Payment Info</th>
+                                <th class="border-0">Total Price</th>
+                                <th class="border-0">Order Status</th>
                                 <th class="border-0 text-end pe-4">Action</th>
                             </tr>
                         </thead>
@@ -29,29 +29,54 @@
                             @forelse($orders as $order)
                                 <tr>
                                     <td class="ps-4">
-                                        <span class="text-muted small">{{ $order->created_at->format('d M, Y') }}</span><br>
-                                        <span class="text-muted smaller">{{ $order->created_at->format('h:i A') }}</span>
+                                        <div class="small fw-bold">#{{ $order->id }}</div>
+                                        <div class="text-muted smaller">{{ $order->created_at->format('d M, Y (h:i A)') }}</div>
                                     </td>
                                     <td>
                                         <div class="d-flex align-items-center gap-3">
-                                            <img src="{{ Storage::url($order->book->cover_image) }}" class="rounded-2" width="40" height="50" style="object-fit: cover;">
+                                            <img src="{{ Storage::url($order->book->cover_image) }}" class="rounded-2" width="45" height="60" style="object-fit: cover;">
                                             <div>
-                                                <span class="fw-bold d-block">{{ $order->book->title }}</span>
-                                                <span class="text-muted smaller">Sender: {{ $order->sender_number }}</span>
+                                                <span class="fw-bold d-block small">{{ Str::limit($order->book->title, 30) }}</span>
+                                                <span class="badge {{ $order->selected_format === 'hardcopy' ? 'bg-primary' : 'bg-danger' }} bg-opacity-10 {{ $order->selected_format === 'hardcopy' ? 'text-primary' : 'text-danger' }} x-small">
+                                                    {{ ucfirst($order->selected_format) }} x {{ $order->quantity }}
+                                                </span>
                                             </div>
                                         </div>
                                     </td>
                                     <td>
-                                        <code class="small text-accent">{{ $order->transaction_id }}</code>
+                                        <div class="smaller mb-1">{{ strtoupper($order->payment_method) }}</div>
+                                        @if($order->payment_status === 'paid')
+                                            <span class="text-success fw-bold smaller uppercase"><i class="fas fa-check-circle me-1"></i>Paid</span>
+                                        @else
+                                            <span class="text-warning fw-bold smaller uppercase"><i class="fas fa-clock me-1"></i>Unpaid</span>
+                                        @endif
+                                        @if($order->transaction_id)
+                                            <div class="smaller text-muted mt-1 fw-mono">{{ $order->transaction_id }}</div>
+                                        @endif
                                     </td>
-                                    <td class="fw-bold">৳{{ number_format($order->amount, 0) }}</td>
                                     <td>
-                                        <span class="badge rounded-pill bg-{{ $order->status === 'approved' ? 'success' : ($order->status === 'pending' ? 'warning' : 'danger') }} bg-opacity-10 text-{{ $order->status === 'approved' ? 'success' : ($order->status === 'pending' ? 'warning' : 'danger') }} px-3">
-                                            {{ ucfirst($order->status) }}
+                                        <div class="fw-bold">৳{{ number_format($order->amount * $order->quantity + ($order->shipping_charge ?? 0), 0) }}</div>
+                                        @if($order->shipping_charge > 0)
+                                            <div class="x-small text-muted">Incl. ৳{{ number_format($order->shipping_charge, 0) }} shipping</div>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @php
+                                            $statusColors = [
+                                                'pending' => 'warning',
+                                                'confirmed' => 'info',
+                                                'shipped' => 'primary',
+                                                'delivered' => 'success',
+                                                'cancelled' => 'danger'
+                                            ];
+                                            $color = $statusColors[$order->order_status] ?? 'secondary';
+                                        @endphp
+                                        <span class="badge rounded-pill bg-{{ $color }} bg-opacity-10 text-{{ $color }} px-3 py-2 uppercase x-small border border-{{ $color }} border-opacity-25">
+                                            {{ $order->order_status }}
                                         </span>
                                     </td>
                                     <td class="text-end pe-4">
-                                        @if($order->status === 'pending')
+                                        @if($order->order_status === 'pending')
                                             <form action="{{ route('user.orders.cancel', $order) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this order?')">
                                                 @csrf
                                                 @method('DELETE')
@@ -59,6 +84,10 @@
                                                     Cancel
                                                 </button>
                                             </form>
+                                        @elseif($order->selected_format === 'pdf' && $order->payment_status === 'paid')
+                                            <a href="{{ route('user.my-books') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                                <i class="fas fa-book-open me-1"></i>My Library
+                                            </a>
                                         @else
                                             <span class="text-muted small">-</span>
                                         @endif
@@ -89,7 +118,9 @@
 @section('styles')
 <style>
     .smaller { font-size: 0.75rem; }
-    .text-accent { color: #6366f1; }
+    .x-small { font-size: 0.65rem; }
+    .uppercase { text-transform: uppercase; letter-spacing: 0.5px; }
+    .fw-mono { font-family: 'Courier New', Courier, monospace; }
     [data-bs-theme="dark"] .bg-light { background-color: rgba(255, 255, 255, 0.05) !important; }
 </style>
 @endsection

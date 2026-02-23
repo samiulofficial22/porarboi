@@ -10,9 +10,19 @@ use App\Models\Notification;
 
 class OrderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $orders = Order::with(['user', 'book'])->latest()->paginate(10);
+        $query = Order::with(['user', 'book']);
+
+        if ($request->has('method')) {
+            $query->where('payment_method', $request->method);
+        }
+
+        if ($request->has('status')) {
+            $query->where('order_status', $request->status);
+        }
+
+        $orders = $query->latest()->paginate(10);
         return view('admin.orders.index', compact('orders'));
     }
 
@@ -25,38 +35,64 @@ class OrderController extends Controller
     public function updateStatus(Request $request, Order $order)
     {
         $request->validate([
-            'status' => 'required|in:pending,approved,rejected',
+            'order_status' => 'required|in:pending,confirmed,shipped,delivered,cancelled',
+            'payment_status' => 'required|in:paid,unpaid',
         ]);
 
-        $data = ['status' => $request->status];
+        $oldStatus = $order->order_status;
+        $newStatus = $request->order_status;
 
-        if ($request->status === 'approved') {
-            $data['approved_at'] = now();
+        // Step 6: Stock Management
+        // Reduce stock when confirmed for the first time
+        if ($oldStatus === 'pending' && $newStatus === 'confirmed') {
+            if ($order->selected_format === 'hardcopy') {
+                if ($order->book->stock_quantity < $order->quantity) {
+                    return back()->with('error', 'Cannot confirm order. Insufficient stock.');
+                }
+                $order->book->decrement('stock_quantity', $order->quantity);
+            }
         }
-        else {
-            $data['approved_at'] = null;
+
+        // If cancelled from a confirmed state, return stock
+        if (in_array($oldStatus, ['confirmed', 'shipped', 'delivered']) && $newStatus === 'cancelled') {
+            if ($order->selected_format === 'hardcopy') {
+                $order->book->increment('stock_quantity', $order->quantity);
+            }
         }
 
-        $order->update($data);
+        // Auto change payment_status = paid when delivered (Step 5)
+        $paymentStatus = $request->payment_status;
+        if ($newStatus === 'delivered' && $order->payment_method === 'cod') {
+            $paymentStatus = 'paid';
+        }
 
-        if ($request->status === 'approved') {
+        $order->update([
+            'order_status' => $newStatus,
+            'payment_status' => $paymentStatus,
+            'approved_at' => ($paymentStatus === 'paid') ? ($order->approved_at ?? now()) : null,
+        ]);
+
+        // Notifications
+        if ($newStatus === 'confirmed') {
+            $msg = "Your order for '{$order->book->title}' has been confirmed.";
+            if ($order->selected_format !== 'hardcopy')
+                $msg .= " You can now download it from your library.";
+
             Notification::create([
                 'user_id' => $order->user_id,
-                'book_id' => $order->book_id,
                 'type' => 'order_approved',
-                'message' => "Your order for '{$order->book->title}' has been approved! You can now download it from your library.",
+                'message' => $msg,
             ]);
         }
-        elseif ($request->status === 'rejected') {
+        elseif ($newStatus === 'shipped') {
             Notification::create([
                 'user_id' => $order->user_id,
-                'book_id' => $order->book_id,
-                'type' => 'order_rejected',
-                'message' => "Sorry, your order for '{$order->book->title}' was rejected. Please contact support for more details.",
+                'type' => 'order_shipped',
+                'message' => "Your physical book '{$order->book->title}' has been shipped!",
             ]);
         }
 
-        return back()->with('success', 'Order status updated.');
+        return back()->with('success', 'Order status and stock updated successfully.');
     }
 
     public function destroy(Order $order)

@@ -20,6 +20,13 @@ class Book extends Model
     }
 
     protected $fillable = [
+        'product_type',
+        'stock_quantity',
+        'weight',
+        'sku',
+        'shipping_charge',
+        'format_price_pdf',
+        'format_price_hardcopy',
         'category_id',
         'title',
         'slug',
@@ -33,6 +40,16 @@ class Book extends Model
         'seo_keywords',
         'og_image',
     ];
+
+    public function hasStock($quantity = 1)
+    {
+        if ($this->product_type === 'digital')
+            return true;
+        if ($this->product_type === 'both' && request()->selected_format === 'pdf')
+            return true;
+
+        return $this->stock_quantity >= $quantity;
+    }
 
     public function category()
     {

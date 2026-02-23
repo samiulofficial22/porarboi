@@ -11,6 +11,11 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
+    {{-- Favicon --}}
+    @if(setting('site_favicon'))
+        <link rel="icon" type="image/x-icon" href="{{ Storage::url(setting('site_favicon')) }}">
+    @endif
+    
     <script>
         const storedTheme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-bs-theme', storedTheme);
@@ -28,18 +33,24 @@
             --card-bg: #1f2937;
             --text-color: #f3f4f6;
             --text-muted: #9ca3af;
+            --text-emphasis: #ffffff;
             --border-color: rgba(255, 255, 255, 0.05);
             --nav-link-hover: rgba(99, 102, 241, 0.1);
+            --input-bg: rgba(255, 255, 255, 0.03);
+            --input-border: rgba(255, 255, 255, 0.1);
         }
 
         [data-bs-theme="light"] {
-            --primary-bg: #f3f4f6;
+            --primary-bg: #f8fafc;
             --sidebar-bg: #ffffff;
             --card-bg: #ffffff;
-            --text-color: #111827;
-            --text-muted: #6b7280;
-            --border-color: rgba(0, 0, 0, 0.05);
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --text-emphasis: #0f172a;
+            --border-color: rgba(0, 0, 0, 0.08);
             --nav-link-hover: rgba(99, 102, 241, 0.05);
+            --input-bg: #ffffff;
+            --input-border: #e2e8f0;
         }
 
         body {
@@ -72,9 +83,31 @@
             font-weight: 700;
             color: var(--text-color);
             text-decoration: none;
-            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-logo-container img {
+            max-height: 40px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        [data-bs-theme="dark"] .logo-dark-admin { display: block !important; }
+        [data-bs-theme="light"] .logo-light-admin { display: block !important; }
+        
+        /* Fallback if one version is missing */
+        [data-bs-theme="dark"] .logo-dark-admin:not([src]), 
+        [data-bs-theme="light"] .logo-light-admin:not([src]) {
+            display: none !important;
+        }
+        
+        [data-bs-theme="dark"] .logo-dark-admin:not([src]) ~ .brand-text-admin,
+        [data-bs-theme="light"] .logo-light-admin:not([src]) ~ .brand-text-admin {
+            display: inline-block !important;
+        }
+        
+        /* If no logos at all, show text */
+        .brand-logo-container:not(:has(img)) .brand-text-admin {
+            display: inline-block !important;
         }
 
         .nav-list {
@@ -125,6 +158,11 @@
             border-radius: 16px;
             padding: 1.5rem;
             height: 100%;
+            color: var(--text-color);
+        }
+
+        .admin-card h1, .admin-card h2, .admin-card h3, .admin-card h4, .admin-card h5, .admin-card h6 {
+            color: var(--text-emphasis);
         }
 
         .btn-gradient {
@@ -138,6 +176,34 @@
 
         .table-custom {
             color: var(--text-color);
+        }
+
+        .table-custom thead th {
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table-custom tbody td {
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0.75rem;
+        }
+
+        .form-control, .form-select {
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--text-color);
+            border-radius: 10px;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.1);
         }
 
         .theme-toggle-admin, .lang-toggle-admin {
@@ -179,9 +245,13 @@
             cursor: pointer;
             text-decoration: none;
             display: block;
+            color: var(--text-color);
         }
         .notification-item-admin:hover {
             background: var(--nav-link-hover);
+        }
+        .notification-item-admin .message-text {
+            color: var(--text-color);
         }
         .bg-unread-admin {
             background: rgba(99, 102, 241, 0.05);
@@ -193,8 +263,25 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <a href="{{ route('admin.dashboard') }}" class="sidebar-brand">
-                <i class="fas fa-rocket me-2"></i>{{ setting('site_name', 'FutureBooks') }}
+            <a href="{{ route('admin.dashboard') }}" class="sidebar-brand d-flex align-items-center">
+                @php
+                    $logoLight = setting('site_logo_light');
+                    $logoDark = setting('site_logo_dark');
+                @endphp
+                
+                @if($logoLight || $logoDark)
+                    <div class="brand-logo-container">
+                        @if($logoLight)
+                            <img src="{{ Storage::url($logoLight) }}" alt="{{ setting('site_name') }}" class="logo-light-admin d-none">
+                        @endif
+                        @if($logoDark)
+                            <img src="{{ Storage::url($logoDark) }}" alt="{{ setting('site_name') }}" class="logo-dark-admin d-none">
+                        @endif
+                        <span class="brand-text-admin ms-2 d-none">{{ setting('site_name', 'FutureBooks') }}</span>
+                    </div>
+                @else
+                    <i class="fas fa-rocket me-2"></i>{{ setting('site_name', 'FutureBooks') }}
+                @endif
             </a>
         </div>
         
@@ -289,7 +376,7 @@
                                                 </div>
                                             </div>
                                             <div>
-                                                <p class="mb-1 small text-white">{{ $notification->message }}</p>
+                                                <p class="mb-1 small message-text">{{ $notification->message }}</p>
                                                 <span class="text-muted smaller" style="font-size: 0.7rem;">{{ $notification->created_at->diffForHumans() }}</span>
                                             </div>
                                         </div>
@@ -299,7 +386,7 @@
                                 @endforelse
                             </div>
                             @if($recentNotifications->count() > 0)
-                                <div class="p-2 text-center border-top">
+                                <div class="p-2 text-center border-top" style="border-color: var(--border-color) !important;">
                                     <a href="{{ route('admin.orders.index') }}" class="text-accent small fw-bold text-decoration-none">Review Orders</a>
                                 </div>
                             @endif
@@ -311,7 +398,7 @@
                         <i class="fas fa-moon" id="moon-icon"></i>
                     </div>
                     <span class="me-3 text-muted d-none d-md-block">{{ auth()->user()->name }}</span>
-                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 40px; height: 40px;">
+                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 40px; height: 40px; font-size: 1.1rem; background: linear-gradient(135deg, var(--accent-color), #4338ca);">
                         {{ substr(auth()->user()->name, 0, 1) }}
                     </div>
                 </div>

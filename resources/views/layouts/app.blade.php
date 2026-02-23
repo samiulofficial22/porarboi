@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     
     {{-- SEO Settings --}}
     <title>@yield('title', setting('default_meta_title')) - {{ setting('site_name', config('app.name')) }}</title>
@@ -326,9 +327,18 @@
     <nav class="navbar navbar-expand-lg fixed-top">
         <div class="container">
             <a class="navbar-brand fs-4" href="{{ route('home') }}">
-                @if(setting('site_logo_light'))
-                    <img src="{{ Storage::url(setting('site_logo_light')) }}" alt="{{ setting('site_name') }}" height="35" class="d-inline-block align-top logo-light">
-                    <img src="{{ Storage::url(setting('site_logo_dark', setting('site_logo_light'))) }}" alt="{{ setting('site_name') }}" height="35" class="d-inline-block align-top logo-dark d-none">
+                @php
+                    $logoLight = setting('site_logo_light');
+                    $logoDark = setting('site_logo_dark');
+                @endphp
+                
+                @if($logoLight || $logoDark)
+                    @if($logoLight)
+                        <img src="{{ Storage::url($logoLight) }}" alt="{{ setting('site_name') }}" height="35" class="d-inline-block align-top logo-light">
+                    @endif
+                    @if($logoDark)
+                        <img src="{{ Storage::url($logoDark) }}" alt="{{ setting('site_name') }}" height="35" class="d-inline-block align-top logo-dark d-none">
+                    @endif
                 @else
                     <i class="fas fa-rocket me-2"></i>{{ setting('site_name', 'FutureBooks') }}
                 @endif
@@ -540,8 +550,13 @@
             <div class="row g-4">
                 <div class="col-lg-4 col-md-6">
                     <a href="{{ route('home') }}" class="footer-logo mb-4 d-inline-block">
-                        @if(setting('site_logo_light'))
-                            <img src="{{ Storage::url(setting('site_logo_light')) }}" alt="{{ setting('site_name') }}" height="40">
+                        @if($logoLight || $logoDark)
+                            @if($logoLight)
+                                <img src="{{ Storage::url($logoLight) }}" alt="{{ setting('site_name') }}" height="40" class="logo-light">
+                            @endif
+                            @if($logoDark)
+                                <img src="{{ Storage::url($logoDark) }}" alt="{{ setting('site_name') }}" height="40" class="logo-dark d-none">
+                            @endif
                         @else
                             <i class="fas fa-rocket me-2"></i>{{ setting('site_name', 'FutureBooks') }}
                         @endif
@@ -603,15 +618,22 @@
             <div id="cart-items-container" class="p-4">
                 <!-- Cart items will be loaded here via JS -->
                 @php $cartItems = Session::get('cart', []); @endphp
-                @forelse($cartItems as $item)
+                @forelse($cartItems as $key => $item)
                     <div class="cart-item mb-4 d-flex gap-3 position-relative p-2 rounded-3 hover-bg">
                         <img src="{{ Storage::url($item['cover_image']) }}" class="rounded-2" width="60" height="80" style="object-fit: cover;">
-                        <div class="flex-grow-1">
-                            <h6 class="fw-bold mb-1 text-truncate" style="max-width: 200px;">{{ $item['title'] }}</h6>
-                            <p class="text-primary fw-bold mb-2">৳{{ number_format($item['price'], 0) }}</p>
-                            <div class="d-flex gap-2">
-                                <a href="{{ route('user.checkout', $item['id']) }}" class="btn btn-sm btn-primary rounded-pill px-3">Buy Now</a>
-                                <button type="button" onclick="removeFromCart({{ $item['id'] }})" class="btn btn-sm btn-outline-danger rounded-pill px-3">Remove</button>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <h6 class="fw-bold mb-1 text-truncate">{{ $item['title'] }}</h6>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <p class="text-primary fw-bold mb-0">৳{{ number_format($item['price'] ?? 0, 0) }}</p>
+                                <span class="badge {{ ($item['format'] ?? 'pdf') === 'hardcopy' ? 'bg-primary text-primary' : 'bg-danger text-danger' }} bg-opacity-10" style="font-size: 0.65rem;">
+                                    {{ ($item['format'] ?? 'pdf') === 'hardcopy' ? 'Physical' : 'PDF' }}
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <p class="small text-muted mb-0">Qty: {{ $item['quantity'] ?? 1 }}</p>
+                                <button onclick="removeFromCart('{{ $key }}')" class="btn btn-link text-danger p-0 text-decoration-none small">
+                                    <i class="fas fa-trash-alt me-1"></i>Remove
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -624,15 +646,21 @@
                 @endforelse
             </div>
         </div>
-        @if(count($cartItems) > 0)
-        <div class="offcanvas-footer p-4 border-top">
-            <div class="d-flex justify-content-between mb-3">
-                <span class="text-muted">Total:</span>
-                <h4 class="fw-bold text-primary mb-0">৳{{ number_format(collect($cartItems)->sum('price'), 0) }}</h4>
+            <div id="cart-footer-container">
+                @if(count($cartItems) > 0)
+                <div class="offcanvas-footer p-4 border-top">
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted">Total:</span>
+                        <h4 class="fw-bold text-primary mb-0">৳{{ number_format(collect($cartItems)->sum(fn($i) => ($i['price'] ?? 0) * ($i['quantity'] ?? 1)), 0) }}</h4>
+                    </div>
+                    <a href="{{ route('user.cart.checkout') }}" class="btn btn-primary w-100 rounded-pill py-3 fw-bold shadow-sm mb-3">
+                        <i class="fas fa-shopping-bag me-2"></i>Proceed to Checkout
+                    </a>
+                    <p class="small text-muted mb-0"><i class="fas fa-info-circle me-1"></i> Digital products available instantly.</p>
+                </div>
+                @endif
             </div>
-            <p class="small text-muted mb-4"><i class="fas fa-info-circle me-1"></i> Digital products are delivered instantly after payment approval.</p>
         </div>
-        @endif
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -675,12 +703,12 @@
             .then(data => {
                 const container = document.getElementById('cart-items-container');
                 const badge = document.getElementById('cart-badge');
-                const footer = document.querySelector('.offcanvas-footer h4');
-                const offcanvasFooter = document.querySelector('.offcanvas-footer');
+                const footerContainer = document.getElementById('cart-footer-container');
                 
-                // Update badge
-                if(data.items.length > 0) {
-                    badge.innerText = data.items.length;
+                // Update badge with total quantity
+                const totalQty = data.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+                if(totalQty > 0) {
+                    badge.innerText = totalQty;
                     badge.classList.remove('d-none');
                 } else {
                     badge.classList.add('d-none');
@@ -694,56 +722,85 @@
                             <p>Your cart is empty</p>
                             <a href="{{ route('categories.index') }}" class="btn btn-primary rounded-pill px-4 mt-2">Explore Books</a>
                         </div>`;
-                    if(offcanvasFooter) offcanvasFooter.remove();
+                    footerContainer.innerHTML = '';
                 } else {
                     let html = '';
                     data.items.forEach(item => {
+                        const formatLabel = item.format === 'hardcopy' ? 'Physical' : 'PDF';
+                        const formatClass = item.format === 'hardcopy' ? 'bg-primary text-primary' : 'bg-danger text-danger';
+                        
                         html += `
                             <div class="cart-item mb-4 d-flex gap-3 position-relative p-2 rounded-3 hover-bg">
                                 <img src="/storage/${item.cover_image}" class="rounded-2" width="60" height="80" style="object-fit: cover;">
-                                <div class="flex-grow-1">
-                                    <h6 class="fw-bold mb-1 text-truncate" style="max-width: 200px;">${item.title}</h6>
-                                    <p class="text-primary fw-bold mb-2">৳${new Intl.NumberFormat().format(item.price)}</p>
-                                    <div class="d-flex gap-2">
-                                        <a href="/user/checkout/${item.id}" class="btn btn-sm btn-primary rounded-pill px-3">Buy Now</a>
-                                        <button onclick="removeFromCart(${item.id})" class="btn btn-sm btn-outline-danger rounded-pill px-3">Remove</button>
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <h6 class="fw-bold mb-1 text-truncate">${item.title}</h6>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <p class="text-primary fw-bold mb-0">৳${new Intl.NumberFormat().format(item.price)}</p>
+                                        <span class="badge ${formatClass} bg-opacity-10" style="font-size: 0.65rem;">${formatLabel}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <p class="small text-muted mb-0">Qty: ${item.quantity}</p>
+                                        <button onclick="removeFromCart('${item.cartKey}')" class="btn btn-link text-danger p-0 text-decoration-none small">
+                                            <i class="fas fa-trash-alt me-1"></i>Remove
+                                        </button>
                                     </div>
                                 </div>
                             </div>`;
                     });
                     container.innerHTML = html;
                     
-                    if(footer) {
-                        footer.innerText = '৳' + new Intl.NumberFormat().format(data.total);
-                    } else if(offcanvasFooter === null && data.items.length > 0) {
-                        // If it was empty before, we might need to recreate the footer
-                        location.reload(); 
-                    }
+                    // Update footer dynamically
+                    footerContainer.innerHTML = `
+                        <div class="offcanvas-footer p-4 border-top">
+                            <div class="d-flex justify-content-between mb-3">
+                                <span class="text-muted">Total:</span>
+                                <h4 class="fw-bold text-primary mb-0">৳${new Intl.NumberFormat().format(data.total)}</h4>
+                            </div>
+                            <a href="{{ route('user.cart.checkout') }}" class="btn btn-primary w-100 rounded-pill py-3 fw-bold shadow-sm mb-3">
+                                <i class="fas fa-shopping-bag me-2"></i>Proceed to Checkout
+                            </a>
+                            <p class="small text-muted mb-0"><i class="fas fa-info-circle me-1"></i> Digital products available instantly.</p>
+                        </div>`;
                 }
             });
         }
 
-        function addToCart(bookId) {
+        let cartOffcanvas = null;
+        function showCart() {
+            if (!cartOffcanvas) {
+                cartOffcanvas = new bootstrap.Offcanvas(document.getElementById('cartSidebar'));
+            }
+            cartOffcanvas.show();
+        }
+
+        function addToCart(bookId, format = null, quantity = 1) {
+            let payload = { quantity: quantity };
+            if (format) payload.format = format;
+
             fetch(`/user/cart/add/${bookId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
                     'X-Requested-With': 'XMLHttpRequest'
-                }
+                },
+                body: JSON.stringify(payload)
             })
             .then(response => response.json())
             .then(data => {
-                if(data.status === 'success' || data.status === 'exists') {
+                if(data.status === 'success') {
                     refreshCartUI();
-                    var cartSidebar = new bootstrap.Offcanvas(document.getElementById('cartSidebar'));
-                    cartSidebar.show();
+                    showCart();
+                } else {
+                    alert(data.message || 'Error adding to cart');
                 }
+            }).catch(error => {
+                console.error('Error:', error);
             });
         }
 
-        function removeFromCart(bookId) {
-            fetch(`/user/cart/remove/${bookId}`, {
+        function removeFromCart(cartKey) {
+            fetch(`/user/cart/remove/${cartKey}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -790,5 +847,6 @@
             updateIcons(savedTheme);
         });
     </script>
+    @yield('scripts')
 </body>
 </html>

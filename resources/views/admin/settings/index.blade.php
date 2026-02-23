@@ -76,17 +76,29 @@
                                             </div>
 
                                         @elseif($setting->type === 'image')
-                                            <div class="d-flex align-items-start gap-4 p-3 rounded-4 border border-opacity-10 bg-light bg-opacity-5">
-                                                <div class="settings-image-preview border rounded-3 overflow-hidden d-flex align-items-center justify-content-center bg-dark" style="width: 100px; height: 100px;">
+                                            @php
+                                                // Determine preview background based on key
+                                                $previewBg = 'bg-secondary bg-opacity-10';
+                                                if ($setting->key === 'site_logo_light') $previewBg = 'bg-white';
+                                                if ($setting->key === 'site_logo_dark') $previewBg = 'bg-dark';
+                                            @endphp
+                                            <div class="d-flex align-items-center gap-4 p-4 rounded-4 border border-opacity-10 bg-light bg-opacity-5">
+                                                <div class="settings-image-preview border rounded-3 overflow-hidden d-flex align-items-center justify-content-center {{ $previewBg }}" 
+                                                     style="width: 120px; height: 120px; border-color: var(--border-color) !important;">
                                                     @if($setting->value)
-                                                        <img src="{{ Storage::url($setting->value) }}" id="preview-{{ $setting->key }}" class="img-fluid object-fit-contain" style="max-height: 100%;">
+                                                        <img src="{{ Storage::url($setting->value) }}" id="preview-{{ $setting->key }}" class="img-fluid object-fit-contain p-2" style="max-height: 100%;">
                                                     @else
-                                                        <i class="fas fa-image fa-2x opacity-10"></i>
+                                                        <div class="text-center opacity-25">
+                                                            <i class="fas fa-image fa-2x mb-2"></i>
+                                                            <div class="smaller">No Image</div>
+                                                        </div>
                                                     @endif
                                                 </div>
                                                 <div class="flex-grow-1">
-                                                    <input type="file" name="{{ $setting->key }}" class="form-control mb-2" onchange="previewImage(this, 'preview-{{ $setting->key }}')">
-                                                    <small class="text-muted d-block">Recommended size: 200x200px. Formats: PNG, JPG, WebP.</small>
+                                                    <div class="input-group input-group-sm mb-2">
+                                                        <input type="file" name="{{ $setting->key }}" class="form-control" onchange="previewImage(this, 'preview-{{ $setting->key }}')">
+                                                    </div>
+                                                    <small class="text-muted d-block"><i class="fas fa-info-circle me-1"></i> Recommended for {{ $setting->display_name }}: PNG with transparency.</small>
                                                 </div>
                                             </div>
                                         @endif

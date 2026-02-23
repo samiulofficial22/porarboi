@@ -62,8 +62,9 @@ Route::post('register', [\App\Http\Controllers\Auth\AuthController::class , 'reg
 // User Routes (Protected)
 Route::middleware(['auth'])->prefix('user')->name('user.')->group(function () {
     Route::get('/dashboard', [UserDashboardController::class , 'index'])->name('dashboard');
+    Route::get('/checkout', [UserOrderController::class , 'cartCheckout'])->name('cart.checkout');
     Route::get('/checkout/{book}', [UserOrderController::class , 'checkout'])->name('checkout');
-    Route::post('/order/{book}', [UserOrderController::class , 'store'])->name('order.store');
+    Route::post('/order', [UserOrderController::class , 'store'])->name('order.store');
     Route::get('/my-books', [UserOrderController::class , 'myBooks'])->name('my-books');
     Route::get('/download/{book}', [UserOrderController::class , 'downloadPdf'])->name('download');
     Route::get('/history', [UserOrderController::class , 'history'])->name('history');
@@ -72,7 +73,7 @@ Route::middleware(['auth'])->prefix('user')->name('user.')->group(function () {
 
     // Cart Routes
     Route::post('/cart/add/{book}', [\App\Http\Controllers\User\CartController::class , 'add'])->name('cart.add');
-    Route::delete('/cart/remove/{id}', [\App\Http\Controllers\User\CartController::class , 'remove'])->name('cart.remove');
+    Route::delete('/cart/remove/{cartKey}', [\App\Http\Controllers\User\CartController::class , 'remove'])->where('cartKey', '[a-zA-Z0-9_-]+')->name('cart.remove');
     Route::get('/cart/items', [\App\Http\Controllers\User\CartController::class , 'getCart'])->name('cart.items');
 
     Route::get('/profile', [UserDashboardController::class , 'profile'])->name('profile');

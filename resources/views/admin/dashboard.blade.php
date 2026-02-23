@@ -10,7 +10,7 @@
             <div class="stats-icon bg-primary bg-opacity-10 text-primary">
                 <i class="fas fa-shopping-bag"></i>
             </div>
-            <h3 class="fw-bold text-white mb-1">{{ $totalSales }}</h3>
+            <h3 class="fw-bold mb-1 card-val">{{ $totalSales }}</h3>
             <p class="text-muted mb-0">Total Sales</p>
         </div>
     </div>
@@ -21,7 +21,7 @@
             <div class="stats-icon bg-success bg-opacity-10 text-success">
                 <i class="fas fa-dollar-sign"></i>
             </div>
-            <h3 class="fw-bold text-white mb-1">${{ number_format($totalRevenue, 2) }}</h3>
+            <h3 class="fw-bold mb-1 card-val">${{ number_format($totalRevenue, 2) }}</h3>
             <p class="text-muted mb-0">Total Revenue</p>
         </div>
     </div>
@@ -32,7 +32,7 @@
             <div class="stats-icon bg-warning bg-opacity-10 text-warning">
                 <i class="fas fa-clock"></i>
             </div>
-            <h3 class="fw-bold text-white mb-1">{{ $pendingOrders }}</h3>
+            <h3 class="fw-bold mb-1 card-val">{{ $pendingOrders }}</h3>
             <p class="text-muted mb-0">Pending Orders</p>
         </div>
     </div>
@@ -43,7 +43,7 @@
             <div class="stats-icon bg-info bg-opacity-10 text-info">
                 <i class="fas fa-users"></i>
             </div>
-            <h3 class="fw-bold text-white mb-1">{{ $totalUsers }}</h3>
+            <h3 class="fw-bold mb-1 card-val">{{ $totalUsers }}</h3>
             <p class="text-muted mb-0">Total Users</p>
         </div>
     </div>
@@ -86,7 +86,7 @@
                                 </div>
                             </div>
                             <div class="flex-grow-1">
-                                <p class="mb-1 small text-white">{{ $notification->message }}</p>
+                                <p class="mb-1 small message-text">{{ $notification->message }}</p>
                                 <span class="text-muted smaller" style="font-size: 0.7rem;">{{ $notification->created_at->diffForHumans() }}</span>
                             </div>
                         </div>
@@ -141,10 +141,10 @@
                 y: {
                     beginAtZero: true,
                     grid: {
-                        color: 'rgba(255, 255, 255, 0.05)'
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim() || 'rgba(0,0,0,0.1)'
                     },
                     ticks: {
-                        color: '#9ca3af'
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#9ca3af'
                     }
                 },
                 x: {
@@ -152,7 +152,7 @@
                         display: false
                     },
                     ticks: {
-                        color: '#9ca3af'
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#9ca3af'
                     }
                 }
             }

@@ -45,8 +45,15 @@ class BookController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
-            'cover_image' => 'required|image|max:2048', // Max 2MB for cover
-            'pdf_file' => 'required|file|mimes:pdf|max:20480', // Max 20MB for PDF
+            'product_type' => 'required|in:digital,physical,both',
+            'stock_quantity' => 'nullable|integer|min:0',
+            'weight' => 'nullable|string|max:255',
+            'sku' => 'nullable|string|max:255|unique:books,sku',
+            'shipping_charge' => 'nullable|numeric|min:0',
+            'format_price_pdf' => 'nullable|numeric|min:0',
+            'format_price_hardcopy' => 'nullable|numeric|min:0',
+            'cover_image' => 'required|image|max:2048',
+            'pdf_file' => 'nullable|required_if:product_type,digital,both|file|mimes:pdf|max:20480',
             'slug' => 'nullable|string|max:255|unique:books,slug',
             'seo_title' => 'nullable|string|max:255',
             'seo_description' => 'nullable|string',
@@ -55,16 +62,19 @@ class BookController extends Controller
         ]);
 
         try {
-            // Upload cover image to public disk
             $coverPath = $request->file('cover_image')->store('covers', 'public');
-
-            // Upload PDF file to local (private) disk
-            $pdfPath = $request->file('pdf_file')->store('books', 'local');
-
+            $pdfPath = $request->hasFile('pdf_file') ? $request->file('pdf_file')->store('books', 'local') : null;
             $ogImagePath = $request->hasFile('og_image') ? $request->file('og_image')->store('seo', 'public') : null;
 
             Book::create([
                 'category_id' => $request->category_id,
+                'product_type' => $request->product_type,
+                'stock_quantity' => $request->stock_quantity,
+                'weight' => $request->weight,
+                'sku' => $request->sku,
+                'shipping_charge' => $request->shipping_charge ?? 0,
+                'format_price_pdf' => $request->format_price_pdf,
+                'format_price_hardcopy' => $request->format_price_hardcopy,
                 'title' => $request->title,
                 'slug' => $request->slug ?: \Illuminate\Support\Str::slug($request->title),
                 'description' => $request->description,
@@ -99,6 +109,13 @@ class BookController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
+            'product_type' => 'required|in:digital,physical,both',
+            'stock_quantity' => 'nullable|integer|min:0',
+            'weight' => 'nullable|string|max:255',
+            'sku' => 'nullable|string|max:255|unique:books,sku,' . $book->id,
+            'shipping_charge' => 'nullable|numeric|min:0',
+            'format_price_pdf' => 'nullable|numeric|min:0',
+            'format_price_hardcopy' => 'nullable|numeric|min:0',
             'cover_image' => 'nullable|image|max:2048',
             'pdf_file' => 'nullable|file|mimes:pdf|max:20480',
             'slug' => 'nullable|string|max:255|unique:books,slug,' . $book->id,
@@ -109,10 +126,13 @@ class BookController extends Controller
         ]);
 
         try {
-            $data = $request->only(['category_id', 'title', 'description', 'price']);
+            $data = $request->only([
+                'category_id', 'product_type', 'stock_quantity', 'weight', 'sku',
+                'shipping_charge', 'format_price_pdf', 'format_price_hardcopy',
+                'title', 'description', 'price'
+            ]);
 
             if ($request->hasFile('cover_image')) {
-                // Delete old cover if not the dummy one
                 if ($book->cover_image && $book->cover_image !== 'covers/dummy.jpg') {
                     Storage::disk('public')->delete($book->cover_image);
                 }
@@ -120,7 +140,6 @@ class BookController extends Controller
             }
 
             if ($request->hasFile('pdf_file')) {
-                // Delete old PDF
                 if ($book->pdf_file) {
                     Storage::disk('local')->delete($book->pdf_file);
                 }

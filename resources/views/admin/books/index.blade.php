@@ -9,7 +9,7 @@
         <div class="admin-card d-flex justify-content-between align-items-center py-3">
             <div>
                 <h4 class="mb-0">All Books</h4>
-                <small class="text-muted">Total books in your system: <span class="text-white fw-bold">{{ $totalBooks }}</span></small>
+                <small class="text-muted">Total books in your system: <span class="fw-bold text-emphasis">{{ $totalBooks }}</span></small>
             </div>
             <a href="{{ route('admin.books.create') }}" class="btn btn-gradient">
                 <i class="fas fa-plus me-2"></i>Add New Book
@@ -68,7 +68,9 @@
                     <th>Cover</th>
                     <th>Book Details</th>
                     <th>Category</th>
+                    <th>Type</th>
                     <th>Price</th>
+                    <th>Stock</th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
@@ -87,15 +89,40 @@
                         @endif
                     </td>
                     <td>
-                        <div class="fw-bold text-white">{{ $book->title }}</div>
-                        <small class="text-muted d-block" style="max-width:300px;">{{ Str::limit($book->description, 60) }}</small>
+                        <div class="fw-bold">{{ $book->title }}</div>
+                        <small class="text-muted d-block" style="max-width:250px;">{{ Str::limit($book->description, 50) }}</small>
                     </td>
                     <td>
                         <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3">
                             {{ $book->category->name ?? 'Uncategorized' }}
                         </span>
                     </td>
-                    <td class="fw-bold">${{ number_format($book->price, 2) }}</td>
+                    <td>
+                        @php
+                            $typeClasses = [
+                                'digital' => 'bg-info text-info',
+                                'physical' => 'bg-primary text-primary',
+                                'both' => 'bg-success text-success'
+                            ];
+                        @endphp
+                        <span class="badge {{ $typeClasses[$book->product_type] ?? 'bg-secondary' }} bg-opacity-10 px-2 py-1 x-small uppercase">
+                            {{ $book->product_type }}
+                        </span>
+                    </td>
+                    <td class="fw-bold">{{ setting('currency_symbol', '৳') }}{{ number_format($book->price, 0) }}</td>
+                    <td>
+                        @if($book->product_type === 'digital')
+                            <span class="text-muted small">N/A</span>
+                        @else
+                            @if($book->stock_quantity <= 0)
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">Out of Stock</span>
+                            @elseif($book->stock_quantity < 5)
+                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">Low: {{ $book->stock_quantity }}</span>
+                            @else
+                                <span class="text-white">{{ $book->stock_quantity }}</span>
+                            @endif
+                        @endif
+                    </td>
                     <td>
                         @if($book->is_active)
                             <span class="badge-soft badge-soft-success">Active</span>
@@ -105,6 +132,12 @@
                     </td>
                     <td>
                         <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-warning rounded-3" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#stockModal{{ $book->id }}" 
+                                    title="Quick Stock Update">
+                                <i class="fas fa-cubes"></i>
+                            </button>
                             <a href="{{ route('admin.books.edit', $book) }}" class="btn btn-sm btn-outline-info rounded-3" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </a>
@@ -115,6 +148,40 @@
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>
+                        </div>
+
+                        <!-- Stock Update Modal -->
+                        <div class="modal fade" id="stockModal{{ $book->id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content bg-dark border-secondary border-opacity-25 rounded-4 shadow-lg">
+                                    <div class="modal-header border-secondary border-opacity-10">
+                                        <h5 class="modal-title text-white">Update Stock: {{ $book->title }}</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <form action="{{ route('admin.books.update', $book) }}" method="POST">
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="modal-body py-4">
+                                            <div class="mb-3">
+                                                <label class="form-label text-muted small">Current Stock: <span class="text-white">{{ $book->stock_quantity }}</span></label>
+                                                <input type="number" name="stock_quantity" class="form-control form-control-lg bg-opacity-50" value="{{ $book->stock_quantity }}" required min="0">
+                                            </div>
+                                            <div class="form-text text-muted smaller">This will set the stock to the exact number provided. Use the main edit page for other details.</div>
+                                            
+                                            <!-- Hidden fields to avoid overwriting with defaults since we are using 'only' in controller (Wait, controller uses 'only' so it's fine) -->
+                                            <input type="hidden" name="title" value="{{ $book->title }}">
+                                            <input type="hidden" name="category_id" value="{{ $book->category_id }}">
+                                            <input type="hidden" name="product_type" value="{{ $book->product_type }}">
+                                            <input type="hidden" name="price" value="{{ $book->price }}">
+                                            <input type="hidden" name="description" value="{{ $book->description }}">
+                                        </div>
+                                        <div class="modal-footer border-secondary border-opacity-10">
+                                            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary rounded-pill px-4">Update Stock</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -143,64 +210,47 @@
 
 @section('styles')
 <style>
-    /* Table Styling */
-    .table-custom {
-        vertical-align: middle;
-    }
-
-    /* Form and Input Styling */
-    .form-control, .form-select, .input-group-text {
-        background-color: rgba(255, 255, 255, 0.03) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        color: #fff !important;
-        border-radius: 10px;
-    }
-    
-    .form-control:focus, .form-select:focus {
-        border-color: #6366f1 !important;
-        box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25) !important;
-    }
-
     /* Pagination Colors Customization */
     .pagination {
         margin-bottom: 0;
         gap: 5px;
     }
     .page-link {
-        background-color: rgba(255, 255, 255, 0.05) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        color: #94a3b8 !important;
+        background-color: var(--card-bg) !important;
+        border: 1px solid var(--border-color) !important;
+        color: var(--text-muted) !important;
         border-radius: 8px !important;
         padding: 8px 16px !important;
         transition: all 0.2s !important;
     }
     .page-link:hover {
-        background-color: #6366f1 !important;
+        background-color: var(--accent-color) !important;
         color: #fff !important;
-        border-color: #6366f1 !important;
+        border-color: var(--accent-color) !important;
     }
     .page-item.active .page-link {
-        background-color: #6366f1 !important;
-        border-color: #6366f1 !important;
+        background-color: var(--accent-color) !important;
+        border-color: var(--accent-color) !important;
         color: #fff !important;
         box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4) !important;
     }
     .page-item.disabled .page-link {
         background-color: transparent !important;
-        border-color: rgba(255, 255, 255, 0.05) !important;
-        color: #475569 !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-muted) !important;
+        opacity: 0.5;
     }
-    .pagination .page-item:first-child .page-link,
-    .pagination .page-item:last-child .page-link {
-        border-radius: 8px !important;
-    }
+    
+    .x-small { font-size: 0.7rem; padding: 4px 8px; }
+    .uppercase { text-transform: uppercase; letter-spacing: 0.5px; }
 
     /* Custom Scrollbar for Table */
     .table-responsive::-webkit-scrollbar {
         height: 6px;
     }
     .table-responsive::-webkit-scrollbar-thumb {
-        background: rgba(99, 102, 241, 0.2);
+        background: var(--accent-color);
+        opacity: 0.2;
         border-radius: 10px;
     }
 </style>

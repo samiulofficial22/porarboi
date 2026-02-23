@@ -4,9 +4,9 @@
 
 @section('content')
 <div class="row justify-content-center">
-    <div class="col-md-8">
+    <div class="col-md-10">
         <div class="admin-card">
-            <h4 class="mb-4">Book Information</h4>
+            <h4 class="mb-4">Book Information (Hybrid System)</h4>
             <form action="{{ route('admin.books.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 
@@ -17,7 +17,7 @@
                 @endif
                 
                 <div class="row">
-                    <div class="col-md-6 mb-4">
+                    <div class="col-md-4 mb-4">
                         <label class="form-label text-muted">Category</label>
                         <select name="category_id" class="form-select form-control-lg @error('category_id') is-invalid @enderror" required>
                             <option value="">Select Category</option>
@@ -32,10 +32,22 @@
                         @enderror
                     </div>
 
-                    <div class="col-md-6 mb-4">
+                    <div class="col-md-4 mb-4">
                         <label class="form-label text-muted">Book Title</label>
                         <input type="text" name="title" class="form-control form-control-lg @error('title') is-invalid @enderror" placeholder="Enter book title" value="{{ old('title') }}" required>
                         @error('title')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-4 mb-4">
+                        <label class="form-label text-muted">Product Type</label>
+                        <select name="product_type" id="product_type" class="form-select form-control-lg @error('product_type') is-invalid @enderror" required>
+                            <option value="digital" {{ old('product_type') == 'digital' ? 'selected' : '' }}>Digital (PDF Only)</option>
+                            <option value="physical" {{ old('product_type') == 'physical' ? 'selected' : '' }}>Physical (Hardcopy Only)</option>
+                            <option value="both" {{ old('product_type') == 'both' ? 'selected' : '' }}>Both (Digital & Physical)</option>
+                        </select>
+                        @error('product_type')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
@@ -49,16 +61,42 @@
                     @enderror
                 </div>
 
-                <div class="row">
-                    <div class="col-md-4 mb-4">
-                        <label class="form-label text-muted">Price ($)</label>
-                        <input type="number" step="0.01" name="price" class="form-control @error('price') is-invalid @enderror" placeholder="0.00" value="{{ old('price') }}" required>
-                        @error('price')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                <div class="row g-4 mb-5 border rounded-4 p-4" style="background-color: var(--nav-link-hover); border-color: var(--border-color) !important;">
+                    <div class="col-12">
+                        <h6 class="text-primary fw-bold mb-0">Pricing & Inventory</h6>
                     </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small">Base Price</label>
+                        <input type="number" step="0.01" name="price" class="form-control" placeholder="0.00" value="{{ old('price') }}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small">PDF Price (Optional)</label>
+                        <input type="number" step="0.01" name="format_price_pdf" class="form-control" placeholder="0.00" value="{{ old('format_price_pdf') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small">Hardcopy Price (Optional)</label>
+                        <input type="number" step="0.01" name="format_price_hardcopy" class="form-control" placeholder="0.00" value="{{ old('format_price_hardcopy') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small">Stock Quantity</label>
+                        <input type="number" name="stock_quantity" class="form-control" placeholder="0" value="{{ old('stock_quantity') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small">SKU</label>
+                        <input type="text" name="sku" class="form-control" placeholder="SKU-001" value="{{ old('sku') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small">Weight (e.g. 500g)</label>
+                        <input type="text" name="weight" class="form-control" placeholder="500g" value="{{ old('weight') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small">Shipping Charge</label>
+                        <input type="number" step="0.01" name="shipping_charge" class="form-control" placeholder="0.00" value="{{ old('shipping_charge', 0) }}">
+                    </div>
+                </div>
 
-                    <div class="col-md-4 mb-4">
+                <div class="row">
+                    <div class="col-md-6 mb-4">
                         <label class="form-label text-muted">Cover Image</label>
                         <input type="file" name="cover_image" class="form-control @error('cover_image') is-invalid @enderror" accept="image/*" required>
                         <small class="text-muted">Recommended: 350x500px</small>
@@ -67,10 +105,10 @@
                         @enderror
                     </div>
 
-                    <div class="col-md-4 mb-4">
+                    <div class="col-md-6 mb-4" id="pdf_file_section">
                         <label class="form-label text-muted">PDF File</label>
-                        <input type="file" name="pdf_file" class="form-control @error('pdf_file') is-invalid @enderror" accept=".pdf" required>
-                        <small class="text-muted">Maximum 20MB</small>
+                        <input type="file" name="pdf_file" class="form-control @error('pdf_file') is-invalid @enderror" accept=".pdf">
+                        <small class="text-muted">Required for Digital/Both. Maximum 20MB</small>
                         @error('pdf_file')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -121,22 +159,31 @@
 </div>
 @endsection
 
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const productType = document.getElementById('product_type');
+    const pdfSection = document.getElementById('pdf_file_section');
+
+    function togglePdfSection() {
+        if (productType.value === 'physical') {
+            pdfSection.style.display = 'none';
+        } else {
+            pdfSection.style.display = 'block';
+        }
+    }
+
+    productType.addEventListener('change', togglePdfSection);
+    togglePdfSection(); // Initial state
+});
+</script>
+@endsection
+
 @section('styles')
 <style>
-    .form-control, .form-select {
-        background-color: rgba(255, 255, 255, 0.05) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        color: white !important;
-        border-radius: 12px;
-    }
-    .form-control:focus, .form-select:focus {
-        background-color: rgba(255, 255, 255, 0.08) !important;
-        border-color: #6366f1 !important;
-        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
-    }
-    option {
-        background-color: #111827;
-        color: white;
+    .form-control::placeholder {
+        color: var(--text-muted);
+        opacity: 0.5;
     }
 </style>
 @endsection

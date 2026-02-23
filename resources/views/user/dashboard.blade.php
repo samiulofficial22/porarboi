@@ -81,7 +81,7 @@
                         <i class="fas fa-clock text-warning fs-3"></i>
                     </div>
                     <div>
-                        <h4 class="fw-bold mb-0">{{ \App\Models\Order::where('user_id', auth()->id())->where('status', 'pending')->count() }}</h4>
+                        <h4 class="fw-bold mb-0">{{ \App\Models\Order::where('user_id', auth()->id())->where('order_status', 'pending')->count() }}</h4>
                         <p class="text-muted mb-0 small uppercase letter-spacing-1">Pending Orders</p>
                     </div>
                 </div>
@@ -101,44 +101,68 @@
                     <table class="table table-hover align-middle mb-0">
                         <thead class="bg-light">
                             <tr>
-                                <th class="ps-4 border-0">Book</th>
-                                <th class="border-0">Price</th>
-                                <th class="border-0">Status</th>
+                                <th class="ps-4 border-0">Book & Format</th>
+                                <th class="border-0">Total</th>
+                                <th class="border-0">Payment</th>
+                                <th class="border-0">Order Status</th>
                                 <th class="border-0">Date</th>
                                 <th class="border-0 text-end pe-4">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($latestOrders as $order)
+                                @php
+                                    $statusColors = [
+                                        'pending'   => 'warning',
+                                        'confirmed' => 'info',
+                                        'shipped'   => 'primary',
+                                        'delivered' => 'success',
+                                        'cancelled' => 'danger',
+                                    ];
+                                    $sc = $statusColors[$order->order_status] ?? 'secondary';
+                                @endphp
                                 <tr>
                                     <td class="ps-4">
                                         <div class="d-flex align-items-center gap-3">
-                                            <img src="{{ Storage::url($order->book->cover_image) }}" class="rounded-3" width="40" height="40" style="object-fit: cover;">
-                                            <span class="fw-bold">{{ $order->book->title }}</span>
+                                            <img src="{{ Storage::url($order->book->cover_image) }}" class="rounded-3" width="42" height="55" style="object-fit: cover;">
+                                            <div>
+                                                <div class="fw-bold small">{{ Str::limit($order->book->title, 28) }}</div>
+                                                <span class="badge {{ $order->selected_format === 'hardcopy' ? 'bg-primary text-primary' : 'bg-danger text-danger' }} bg-opacity-10" style="font-size:0.65rem;">
+                                                    {{ $order->selected_format === 'hardcopy' ? 'Physical' : 'PDF' }} &times; {{ $order->quantity }}
+                                                </span>
+                                            </div>
                                         </div>
                                     </td>
-                                    <td>৳{{ number_format($order->amount, 0) }}</td>
+                                    <td class="fw-bold small">৳{{ number_format($order->amount * $order->quantity + ($order->shipping_charge ?? 0), 0) }}</td>
                                     <td>
-                                        <span class="badge rounded-pill bg-{{ $order->status === 'approved' ? 'success' : ($order->status === 'pending' ? 'warning' : 'danger') }} bg-opacity-10 text-{{ $order->status === 'approved' ? 'success' : ($order->status === 'pending' ? 'warning' : 'danger') }} px-3">
-                                            {{ ucfirst($order->status) }}
+                                        <div class="smaller text-muted">{{ strtoupper($order->payment_method) }}</div>
+                                        @if($order->payment_status === 'paid')
+                                            <span class="text-success fw-bold" style="font-size:0.7rem;"><i class="fas fa-check-circle me-1"></i>Paid</span>
+                                        @else
+                                            <span class="text-warning fw-bold" style="font-size:0.7rem;"><i class="fas fa-clock me-1"></i>Unpaid</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <span class="badge rounded-pill bg-{{ $sc }} bg-opacity-10 text-{{ $sc }} px-3 py-1 border border-{{ $sc }} border-opacity-25" style="font-size:0.65rem; text-transform:uppercase; letter-spacing:0.5px;">
+                                            {{ $order->order_status }}
                                         </span>
                                     </td>
                                     <td class="text-muted small">{{ $order->created_at->format('M d, Y') }}</td>
                                     <td class="text-end pe-4">
-                                        @if($order->status === 'pending')
-                                            <form action="{{ route('user.orders.cancel', $order) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this order?')">
+                                        @if($order->order_status === 'pending')
+                                            <form action="{{ route('user.orders.cancel', $order) }}" method="POST" onsubmit="return confirm('Cancel this order?')">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-link text-danger p-0 small fw-bold text-decoration-none">Cancel</button>
                                             </form>
                                         @else
-                                            -
+                                            <a href="{{ route('user.history') }}" class="btn btn-link text-primary p-0 small fw-bold text-decoration-none">Details</a>
                                         @endif
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="text-center py-5 text-muted">No recent activities</td>
+                                    <td colspan="6" class="text-center py-5 text-muted">No recent activities</td>
                                 </tr>
                             @endforelse
                         </tbody>

@@ -16,17 +16,25 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $totalSales = Order::where('status', 'approved')->count();
-        $totalRevenue = Order::where('status', 'approved')->sum('amount');
+        // General Stats
+        $totalSales = Order::where('payment_status', 'paid')->count();
+        $totalRevenue = Order::where('payment_status', 'paid')->sum('amount');
         $totalUsers = User::where('role', 'user')->count();
-        $pendingOrders = Order::where('status', 'pending')->count();
+        $pendingOrders = Order::where('order_status', 'pending')->count();
 
-        // Monthly sales data for Chart
+        // Hybrid Stats
+        $codOrdersCount = Order::where('payment_method', 'cod')->count();
+        $onlineOrdersCount = Order::where('payment_method', 'online')->count();
+
+        $physicalOrdersCount = Order::where('selected_format', 'hardcopy')->count();
+        $digitalOrdersCount = Order::where('selected_format', 'pdf')->count();
+
+        // Monthly revenue data for Chart
         $salesData = Order::select(
             DB::raw('sum(amount) as sums'),
             DB::raw("DATE_FORMAT(created_at,'%M') as months")
         )
-            ->where('status', 'approved')
+            ->where('payment_status', 'paid')
             ->whereYear('created_at', date('Y'))
             ->groupBy('months')
             ->get();
@@ -36,7 +44,18 @@ class DashboardController extends Controller
             ->take(10)
             ->get();
 
-        return view('admin.dashboard', compact('totalSales', 'totalRevenue', 'totalUsers', 'pendingOrders', 'salesData', 'notifications'));
+        return view('admin.dashboard', compact(
+            'totalSales',
+            'totalRevenue',
+            'totalUsers',
+            'pendingOrders',
+            'salesData',
+            'notifications',
+            'codOrdersCount',
+            'onlineOrdersCount',
+            'physicalOrdersCount',
+            'digitalOrdersCount'
+        ));
     }
 
     public function notifications()

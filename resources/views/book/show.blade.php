@@ -97,57 +97,84 @@
                             <p class="text-muted lh-lg">{{ $book->description }}</p>
                         </div>
 
-                        <!-- Feature Badges -->
-                        <div class="d-flex flex-wrap gap-2 mb-4">
-                            <span class="feature-badge"><i class="fas fa-download me-1"></i>Instant Download</span>
-                            <span class="feature-badge"><i class="fas fa-mobile-alt me-1"></i>Read Anywhere</span>
-                            <span class="feature-badge"><i class="fas fa-infinity me-1"></i>Lifetime Access</span>
+                        <!-- Format Selector (for 'both' type) -->
+                        @if($book->product_type === 'both')
+                            <div class="mb-4">
+                                <h6 class="fw-bold text-muted text-uppercase small mb-3 tracking-wider">Select Format</h6>
+                                <div class="row g-3">
+                                    <div class="col-6">
+                                        <div class="format-option p-3 rounded-4 border cursor-pointer active" data-format="pdf" data-price="{{ $book->format_price_pdf ?? $book->price }}">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="fas fa-file-pdf text-danger"></i>
+                                                <div>
+                                                    <div class="fw-bold small">PDF Version</div>
+                                                    <div class="x-small text-muted">Instant Access</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="format-option p-3 rounded-4 border cursor-pointer" data-format="hardcopy" data-price="{{ $book->format_price_hardcopy ?? $book->price }}">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="fas fa-book text-primary"></i>
+                                                <div>
+                                                    <div class="fw-bold small">Hardcopy</div>
+                                                    <div class="x-small text-muted">{{ $book->stock_quantity > 0 ? $book->stock_quantity . ' in stock' : 'Out of Stock' }}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="selected_format" value="pdf">
+                            </div>
+                        @else
+                            <input type="hidden" id="selected_format" value="{{ $book->product_type === 'physical' ? 'hardcopy' : 'pdf' }}">
+                        @endif
+
+                        <!-- Quantity Selector -->
+                        <div class="mb-4 d-flex align-items-center gap-3">
+                            <h6 class="fw-bold text-muted text-uppercase small mb-0 tracking-wider">Quantity</h6>
+                            <div class="d-flex border rounded-pill overflow-hidden" style="width: 120px;">
+                                <button class="btn btn-sm btn-link text-decoration-none px-3 text-dark border-end" onclick="updateQty(-1)"><i class="fas fa-minus"></i></button>
+                                <input type="number" id="purchase_qty" value="1" class="form-control form-control-sm border-0 text-center bg-transparent" readonly>
+                                <button class="btn btn-sm btn-link text-decoration-none px-3 text-dark border-start" onclick="updateQty(1)"><i class="fas fa-plus"></i></button>
+                            </div>
                         </div>
 
                         <!-- CTA Buttons -->
                         <div class="d-grid gap-3">
-                            @if($book->price == 0)
+                            @if($book->price == 0 && $book->product_type !== 'physical')
                                 <a href="{{ route('free.download', $book) }}"
                                    class="btn btn-success btn-lg rounded-pill py-3 fw-bold shadow-sm">
                                     <i class="fas fa-download me-2"></i>Download Free PDF
                                 </a>
-                                <p class="text-center text-muted small mb-0">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    @if(setting('allow_guest_free_download', false))
-                                        Instant download after providing your email.
-                                    @else
-                                        Instant free download after login.
-                                    @endif
-                                </p>
                             @else
                                 @if(Auth::check())
                                     @if(Auth::user()->role === 'user')
-                                        <div class="d-flex gap-2">
-                                            <button onclick="addToCart({{ $book->id }})" class="btn btn-view-details btn-lg rounded-pill py-3 fw-semibold flex-grow-1">
-                                                <i class="fas fa-shopping-cart me-2"></i>
-                                                {{ app()->getLocale() == 'bn' ? 'কার্টে যোগ করুন' : 'Add to Cart' }}
+                                        @if($book->product_type === 'physical' && $book->stock_quantity <= 0)
+                                            <button class="btn btn-danger btn-lg rounded-pill py-3 fw-bold opacity-50" disabled>
+                                                <i class="fas fa-times-circle me-2"></i>Out of Stock
                                             </button>
-                                            <a href="{{ route('user.checkout', $book) }}"
-                                               class="btn btn-buy-now btn-lg rounded-pill py-3 fw-bold shadow-sm px-4">
-                                                <i class="fas fa-bolt me-2"></i>{{ app()->getLocale() == 'bn' ? 'এখনইকিনুন' : 'Buy Now' }}
-                                            </a>
-                                        </div>
+                                        @else
+                                            <div class="d-flex gap-2">
+                                                <button onclick="handleAddToCart()" class="btn btn-view-details btn-lg rounded-pill py-3 fw-semibold flex-grow-1">
+                                                    <i class="fas fa-shopping-cart me-2"></i>
+                                                    Add to Cart
+                                                </button>
+                                                <button onclick="handleBuyNow()" class="btn btn-buy-now btn-lg rounded-pill py-3 fw-bold shadow-sm px-4">
+                                                    <i class="fas fa-bolt me-2"></i>Buy Now
+                                                </button>
+                                            </div>
+                                        @endif
                                     @else
                                         <div class="alert alert-info rounded-4 border-0 text-center">
-                                            <i class="fas fa-info-circle me-2"></i>
-                                            You are logged in as Admin. Purchase is not available for admin accounts.
+                                            <i class="fas fa-info-circle me-2"></i>Admin account: Purchase preview mode.
                                         </div>
                                     @endif
                                 @else
                                     <a href="{{ route('login') }}"
                                        class="btn btn-buy-now btn-lg rounded-pill py-3 fw-bold shadow-sm">
-                                        <i class="fas fa-sign-in-alt me-2"></i>
-                                        {{ app()->getLocale() == 'bn' ? 'লগইন করে কিনুন' : 'Login to Buy Now' }}
-                                    </a>
-                                    <a href="{{ route('register') }}"
-                                       class="btn btn-view-details btn-lg rounded-pill py-3 fw-semibold">
-                                        <i class="fas fa-user-plus me-2"></i>
-                                        {{ app()->getLocale() == 'bn' ? 'নতুন অ্যাকাউন্ট তৈরি করুন' : 'Create Free Account' }}
+                                        <i class="fas fa-sign-in-alt me-2"></i>Login to Purchase
                                     </a>
                                 @endif
                             @endif
@@ -253,5 +280,49 @@
         border-color: #cbd5e1;
         color: #475569;
     }
+
+    .format-option { transition: all 0.3s ease; border: 2px solid rgba(0,0,0,0.05) !important; }
+    .format-option.active { border-color: var(--primary-color) !important; background: rgba(99, 102, 241, 0.03); }
+    .cursor-pointer { cursor: pointer; }
+    .x-small { font-size: 0.65rem; }
 </style>
+<script>
+    function updateQty(delta) {
+        const input = document.getElementById('purchase_qty');
+        let val = parseInt(input.value) + delta;
+        if (val < 1) val = 1;
+        input.value = val;
+    }
+
+    document.querySelectorAll('.format-option').forEach(opt => {
+        opt.addEventListener('click', function() {
+            document.querySelectorAll('.format-option').forEach(o => o.classList.remove('active'));
+            this.classList.add('active');
+            
+            const format = this.dataset.format;
+            const price = this.dataset.price;
+            
+            document.getElementById('selected_format').value = format;
+            document.querySelector('.price-display').innerText = '{{ setting("currency_symbol", "৳") }}' + new Intl.NumberFormat().format(price);
+            
+            // Toggle feature badges based on format
+            if(format === 'pdf') {
+                document.querySelectorAll('.feature-badge')[0].innerHTML = '<i class=\"fas fa-download me-1\"><\/i>Instant Download';
+            } else {
+                document.querySelectorAll('.feature-badge')[0].innerHTML = '<i class=\"fas fa-truck me-1\"><\/i>Home Delivery';
+            }
+        });
+    });
+
+    function handleAddToCart() {
+        const format = document.getElementById('selected_format').value;
+        const qty = document.getElementById('purchase_qty').value;
+        addToCart({{ $book->id }}, format, qty);
+    }
+
+    function handleBuyNow() {
+        const format = document.getElementById('selected_format').value;
+        window.location.href = `{{ route('user.checkout', $book->id) }}?format=${format}`;
+    }
+</script>
 @endsection
