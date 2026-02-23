@@ -1,0 +1,60 @@
+services:
+  # Laravel Web Service
+  - type: web
+    name: laravel-app
+    env: docker
+    dockerfile: Dockerfile
+    plan: free # অথবা আপনার পছন্দমতো প্ল্যান
+    region: singapore # আপনার কাছের রিজিয়ন
+    envVars:
+      - key: APP_KEY
+        sync: false # এটি Render ড্যাশবোর্ডে ম্যানুয়ালি সেট করবেন
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: DB_CONNECTION
+        value: mysql
+      - key: DB_HOST
+        fromService:
+          name: mysql-db
+          type: pservice
+          property: host
+      - key: DB_PORT
+        value: 3306
+      - key: DB_DATABASE
+        fromService:
+          name: mysql-db
+          type: pservice
+          property: dbName
+      - key: DB_USERNAME
+        fromService:
+          name: mysql-db
+          type: pservice
+          property: user
+      - key: DB_PASSWORD
+        fromService:
+          name: mysql-db
+          type: pservice
+          property: password
+
+  # MySQL Private Service
+  - type: pservice
+    name: mysql-db
+    env: docker
+    dockerfile: ./docker/mysql/Dockerfile # নিচে আমরা এটি তৈরি করব
+    plan: free
+    region: singapore
+    disk:
+      name: mysql-data
+      mountPath: /var/lib/mysql
+      sizeGB: 1
+    envVars:
+      - key: MYSQL_DATABASE
+        value: laravel
+      - key: MYSQL_USER
+        value: laravel_user
+      - key: MYSQL_PASSWORD
+        generateValue: true
+      - key: MYSQL_ROOT_PASSWORD
+        generateValue: true
