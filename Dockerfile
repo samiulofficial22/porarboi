@@ -66,7 +66,7 @@ EXPOSE 80
 
 # Environment variables
 ENV APP_ENV=production
-ENV APP_DEBUG=false
+ENV APP_DEBUG=true
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
