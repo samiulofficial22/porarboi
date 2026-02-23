@@ -67,6 +67,7 @@ EXPOSE 80
 # Environment variables
 ENV APP_ENV=production
 ENV APP_DEBUG=true
+ENV DB_CONNECTION=mysql
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
