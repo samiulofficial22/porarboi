@@ -1,0 +1,11 @@
+node_modules
+vendor
+public/build
+storage/*.key
+.git
+.env
+.idea
+.vscode
+docker-compose.yml
+Dockerfile
+.dockerignore
