@@ -23,15 +23,9 @@ services:
       - key: DB_PORT
         value: 3306
       - key: DB_DATABASE
-        fromService:
-          name: mysql-db
-          type: pservice
-          property: dbName
+        value: laravel
       - key: DB_USERNAME
-        fromService:
-          name: mysql-db
-          type: pservice
-          property: user
+        value: laravel_user
       - key: DB_PASSWORD
         fromService:
           name: mysql-db

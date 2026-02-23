@@ -17,6 +17,10 @@ chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 # Create storage link
 php artisan storage:link --ansi --no-interaction || true
 
+# Clear and Cache configuration
+php artisan config:clear
+php artisan cache:clear
+
 # Run migrations in production
 if [ "$APP_ENV" = "production" ]; then
     echo "Running migrations..."
