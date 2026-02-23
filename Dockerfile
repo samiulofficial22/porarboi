@@ -55,7 +55,8 @@ COPY --from=assets-builder /app/public/build /var/www/public/build
 
 # Copy entrypoint script
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh && \
+    sed -i 's/\r$//' /usr/local/bin/entrypoint.sh
 
 # Setup permissions
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
@@ -67,7 +68,7 @@ EXPOSE 80
 ENV APP_ENV=production
 ENV APP_DEBUG=false
 
-ENTRYPOINT ["entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 # Start supervisor
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

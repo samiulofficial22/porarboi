@@ -1,20 +1,21 @@
 #!/bin/sh
 set -e
 
-# Ensure storage and bootstrap/cache are writable
-chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
-
-# Create storage link if not exists
-php artisan storage:link --ansi --no-interaction || true
-
-# Cache configuration and routes for performance
-if [ "$NODE_ENV" = "production" ] || [ "$APP_ENV" = "production" ]; then
-    php artisan config:cache
-    php artisan route:cache
-    php artisan view:cache
+# Clear cache if any exists from host
+if [ -d "/var/www/storage/framework/views" ]; then
+    find /var/www/storage/framework/views -type f -name '*.php' -delete
 fi
 
-# Run migrations if database is ready (optional, but often needed)
-# php artisan migrate --force
+# Ensure directories exist
+mkdir -p /var/www/storage/framework/sessions /var/www/storage/framework/views /var/www/storage/framework/cache /var/www/storage/logs
+mkdir -p /var/www/bootstrap/cache
 
+# Setup permissions
+chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+
+# Create storage link
+php artisan storage:link --ansi --no-interaction || true
+
+# Execution
 exec "$@"
