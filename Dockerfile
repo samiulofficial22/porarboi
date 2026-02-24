@@ -10,7 +10,8 @@ RUN npm run build
 FROM composer:2 AS composer-builder
 WORKDIR /app
 COPY composer*.json ./
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
+# We remove --no-dev because we need Faker for seeding initial data in production
+RUN composer install --no-scripts --no-autoloader --prefer-dist
 COPY . .
 RUN composer dump-autoload --optimize
 
