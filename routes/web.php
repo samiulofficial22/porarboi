@@ -12,8 +12,21 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\CategoryController;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Artisan;
 
 /* |-------------------------------------------------------------------------- | Web Routes |-------------------------------------------------------------------------- | | Here is where you can register web routes for your application. These | routes are loaded by the RouteServiceProvider and all of them will | be assigned to the "web" middleware group. Make something great! | */
+
+// Maintenance Routes (Use only for first time or after DB changes)
+Route::get('/init-db', function () {
+    try {
+        Artisan::call('migrate', ['--force' => true]);
+        Artisan::call('db:seed', ['--force' => true]);
+        return "Database Migration and Seeding Successful! <br><br> Logs: <br>" . Artisan::output();
+    }
+    catch (\Exception $e) {
+        return "Error: " . $e->getMessage();
+    }
+});
 
 // Public Routes
 Route::get('lang/{locale}', function ($locale) {
