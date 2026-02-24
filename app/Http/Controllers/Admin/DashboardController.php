@@ -30,9 +30,14 @@ class DashboardController extends Controller
         $digitalOrdersCount = Order::where('selected_format', 'pdf')->count();
 
         // Monthly revenue data for Chart
+        $isPostgres = DB::getDriverName() === 'pgsql';
+        $monthField = $isPostgres
+            ? "TO_CHAR(created_at, 'Month') as months"
+            : "DATE_FORMAT(created_at, '%M') as months";
+
         $salesData = Order::select(
             DB::raw('sum(amount) as sums'),
-            DB::raw("DATE_FORMAT(created_at,'%M') as months")
+            DB::raw($monthField)
         )
             ->where('payment_status', 'paid')
             ->whereYear('created_at', date('Y'))
