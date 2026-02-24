@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            SettingSeeder::class ,
             CategorySeeder::class ,
             BookSeeder::class ,
         ]);
@@ -24,8 +25,8 @@ class DatabaseSeeder extends Seeder
 
         User::factory()->create([
             'name' => 'Admin User',
-            'email' => 'admin@gmail.com',
-            'password' => bcrypt('password'),
+            'email' => 'adminsamiul@gmail.com',
+            'password' => bcrypt('samiporarboi'),
             'role' => 'admin',
         ]);
 
