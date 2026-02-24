@@ -10,8 +10,9 @@ services:
     environment:
       SERVICE_NAME: app
       SERVICE_TAGS: dev
-      DB_HOST: mysql
-      DB_PORT: 3306
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
       DB_DATABASE: ${DB_DATABASE:-laravel}
       DB_USERNAME: ${DB_USERNAME:-laravel}
       DB_PASSWORD: ${DB_PASSWORD:-password}
@@ -21,26 +22,23 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - mysql
+      - postgres
     networks:
       - laravel
 
-  mysql:
-    image: mysql:8.0
-    container_name: mysql_db
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres_db
     restart: unless-stopped
     tty: true
     ports:
-      - "3306:3306"
+      - "5432:5432"
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-laravel}
-      MYSQL_USER: ${DB_USER:-laravel}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-password}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
-      SERVICE_TAGS: dev
-      SERVICE_NAME: mysql
+      POSTGRES_DB: ${DB_DATABASE:-laravel}
+      POSTGRES_USER: ${DB_USERNAME:-laravel}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
     volumes:
-      - ./docker/mysql:/var/lib/mysql
+      - ./docker/postgres:/var/lib/postgresql/data
     networks:
       - laravel
 

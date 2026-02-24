@@ -30,7 +30,7 @@ RUN apk add --no-cache \
     libzip-dev \
     icu-dev \
     oniguruma-dev \
-    mysql-client \
+    postgresql-dev \
     linux-headers
 
 # Install PHP extensions
@@ -40,6 +40,7 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     gd \
     intl \
     pdo_mysql \
+    pdo_pgsql \
     zip \
     opcache
 
@@ -67,7 +68,7 @@ EXPOSE 80
 # Environment variables
 ENV APP_ENV=production
 ENV APP_DEBUG=true
-ENV DB_CONNECTION=mysql
+ENV DB_CONNECTION=pgsql
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
